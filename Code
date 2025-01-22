@@ -121,7 +121,6 @@ library(tidyverse)
 library(MASS)
 library(rgl)
 
-# 随机选择50行数据
 sampled_data <- selected_Final[sample(nrow(data), 50), ]
 view(sampled_data)
 
