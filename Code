@@ -1,0 +1,170 @@
+#View raw data
+View(X2018_Financial_Data)
+
+library(tidyverse)
+#View Data Structures
+str(X2018_Financial_Data)
+head(X2018_Financial_Data)
+#Checking data and cleaning
+#Checking for missing values in the data
+colSums(is.na(X2018_Financial_Data))
+# Calculate the percentage of missing values for each column
+missing_ratio <- colMeans(is.na(X2018_Financial_Data))
+# Remove columns with more than 25% missing, save in A2018
+A2018_Financial_Data <- X2018_Financial_Data[, missing_ratio < 0.25]
+# View an overview of the deleted data
+colSums(is.na(A2018_Financial_Data))
+summary(A2018_Financial_Data)
+
+library(dplyr)
+# Convert all character types except the first column to numeric types and store them in B2018
+B2018_Financial_Data <- A2018_Financial_Data %>%
+  mutate(across(.cols = -1,               # Excluding the first column
+                .fns = ~ as.numeric(.),   # Convert to Numeric
+                .names = "{.col}"))
+#View converted data
+print(B2018_Financial_Data)
+summary(B2018_Financial_Data)
+head(B2018_Financial_Data)
+#Sorted by income and saved in C2018
+C2018_Financial_Data <- B2018_Financial_Data[order(-B2018_Financial_Data$Revenue),]
+#View C2018 data
+view(C2018_Financial_Data)
+summary(C2018_Financial_Data)
+
+#Variables for the extraction of 60
+target_vars <- c("...1","Revenue", "Revenue Growth", "Cost of Revenue", "Gross Profit", 
+                 "R&D Expenses", "SG&A Expense", "Operating Expenses", 
+                 "Operating Income", "Interest Expense", "Earnings before Tax", 
+                 "Income Tax Expense", "Net Income - Non-Controlling int", 
+                 "Net Income - Discontinued ops", "Net Income", "Preferred Dividends", 
+                 "Net Income Com", "EPS", "EPS Diluted", "Weighted Average Shs Out", 
+                 "Weighted Average Shs Out (Dil)", "Dividend per Share", "Gross Margin", 
+                 "EBITDA Margin", "EBIT Margin", "Profit Margin", "Free Cash Flow margin", 
+                 "EBITDA", "EBIT", "Consolidated Income", "Earnings Before Tax Margin", 
+                 "Net Profit Margin", "Cash and cash equivalents", "Short-term investments", 
+                 "Cash and short-term investments", "Receivables", "Inventories", 
+                 "Total current assets", "Property, Plant & Equipment Net", 
+                 "Goodwill and Intangible Assets", "Long-term investments", "Tax assets", 
+                 "Total non-current assets", "Total assets", "Payables", "Short-term debt", 
+                 "Total current liabilities", "Long-term debt", "Total debt", 
+                 "Deferred revenue", "Tax Liabilities", "Deposit Liabilities", 
+                 "Total non-current liabilities", "Total liabilities", 
+                 "Other comprehensive income", "Retained earnings (deficit)", 
+                 "Total shareholders equity", "Investments", "Net Debt", "Other Assets", 
+                 "Other Liabilities", "Depreciation & Amortization", 
+                 "Stock-based compensation", "Operating Cash Flow")
+
+# Select these variables from the dataset
+selected_data <- C2018_Financial_Data %>%
+  select(all_of(target_vars))
+
+# Remove rows containing NA
+selected_data <- na.omit(selected_data)
+
+# Select these variables from the dataset
+selected_dataA <- C2018_Financial_Data %>%
+  select(all_of(target_vars))
+str(selected_dataA)
+summary(selected_dataA)
+# Calculate the correlation matrix
+cor_matrix <- cor(selected_dataA, use = "complete.obs")
+# Extract correlation with Revenue
+revenue_correlation <- cor_matrix["Revenue", ]
+revenue_correlation <- sort(revenue_correlation, decreasing = TRUE)
+print(revenue_correlation)
+
+
+install.packages("ggcorrplot")
+library(ggcorrplot)
+# Heat mapping of correlations
+ggcorrplot(cor_matrix, method = "circle", 
+           lab = TRUE, 
+           title = "Correlation Matrix")
+
+# Screening for variables with high correlation with Revenue
+high_corr_vars <- revenue_correlation[abs(revenue_correlation) > 0.7]
+print(high_corr_vars)
+
+
+#Seventeen variables with correlations higher than 0.7 with Revenue were obtained
+target_vars2 <- c("Revenue", "Cost of Revenue","Payables", "Total current liabilities", "Gross Profit",
+                 "Operating Expenses", "Total assets", "Operating Cash Flow", "Total liabilities", 
+                 "Total current assets", "EBITDA", "Total non-current assets","Total shareholders equity",
+                 "SG&A Expense","Property, Plant & Equipment Net","Depreciation & Amortization","EBIT")
+# Select these 17 variables from the data set
+selected_dataB <- C2018_Financial_Data %>%
+  select(all_of(target_vars2))
+str(selected_dataB)
+# Calculate the correlation matrix
+cor_matrix2 <- cor(selected_dataB, use = "complete.obs")
+# Heat mapping of correlations
+ggcorrplot(cor_matrix2, method = "circle", 
+           lab = TRUE, 
+           title = "Correlation Matrix")
+#View dataB
+view(selected_dataB)
+#View the final selection of data
+FinalSelect <- c("...1","Revenue", "Cost of Revenue","Payables", "Total current liabilities", "Gross Profit",
+                  "Operating Expenses", "Total assets", "Operating Cash Flow", "Total liabilities", 
+                  "Total current assets", "EBITDA", "Total non-current assets","Total shareholders equity",
+                  "SG&A Expense","Property, Plant & Equipment Net","Depreciation & Amortization","EBIT")
+selected_Final <- C2018_Financial_Data %>%
+  select(all_of(FinalSelect))
+view(selected_Final)
+str(selected_Final)
+summary(selected_Final)
+
+
+
+library(tidyverse)
+library(MASS)
+library(rgl)
+
+# 随机选择50行数据
+sampled_data <- selected_Final[sample(nrow(data), 50), ]
+view(sampled_data)
+
+#Relationship between cost of revenue and income
+#Scatterplotting with ggplot2
+ggplot(data=sampled_data, aes(x = `Cost of Revenue`, y = Revenue)) +
+  geom_point(color = "blue") +  
+  geom_smooth(method = "lm", se = FALSE, color = "red") +  # Plotting the regression line
+  labs(title = "Relationship between Cost of Revenue and Revenue", 
+       x = "Cost of Revenue", 
+       y = "Revenue") +
+  theme_minimal()
+#Fast correlation analysis
+cor.test(
+  sampled_data$`Cost of Revenue`,
+  sampled_data$Revenue)
+
+#fit a regression model
+mod_Cost_of_Revenue <- lm(
+  formula=Revenue~`Cost of Revenue`, # predicting Revenue using Cost of Revenue
+  data=sampled_data
+)
+summary(mod_Cost_of_Revenue)
+
+
+#multiple linear regression (MLR)
+#Relationship between gross profit and revenue
+ggplot(data=sampled_data, aes(x = `Gross Profit`, y = Revenue)) +
+  geom_point(color = "blue") +  
+  geom_smooth(method = "lm", se = FALSE, color = "red") +  
+  labs(title = "Relationship between Gross Profit and Revenue", 
+       x = "Gross Profit", 
+       y = "Revenue") +
+  theme_minimal()
+#Fast correlation analysis
+cor.test(
+  sampled_data$`Gross Profit`,
+  sampled_data$Revenue)
+#Drawing 3D models
+library(rgl)
+plot3d(
+  x=sampled_data$`Gross Profit`,
+  y=sampled_data$Revenue,
+  z=sampled_data$`Cost of Revenue`,
+  type='s', size=2, col='blue' # show the data points as big blue spheres for visibility
+)
